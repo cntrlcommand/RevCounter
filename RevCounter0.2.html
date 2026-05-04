@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Revolution Church &mdash; Attendance Counter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+    html,body{width:100%;height:100%}
+
+    /* ── LIGHT MODE ── */
+    :root{
+      --navy:#3B6490;--navy2:#2E5078;--blue:#5B9BC8;
+      --blue-bg:#E4EFF7;--blue-border:#8BBAD8;
+      --bg:#F2F6FA;--card:#ffffff;--border:#B4C8DC;--muted:#6B849E;
+      --text:#3B6490;
+      --btn-primary-bg:#3B6490;--btn-primary-text:#ffffff;
+      --btn-clear-bg:#FDF2F0;--btn-clear-text:#B03020;--btn-clear-border:rgba(176,48,32,.3);
+      --tap:#DCE8F2;--tap-plus:#E4EFF7;
+      --menu-bg:#ffffff;
+      --toggle-track:#B4C8DC;
+    }
+
+    /* ── DARK MODE ── */
+    body.dark{
+      --bg:#131720;--card:#1C2130;--border:#2A3650;--muted:#7090AA;
+      --text:#C8D8EC;
+      --blue-bg:#1E2A3A;--blue-border:#2E4060;
+      --btn-primary-bg:#2E4A6A;--btn-primary-text:#C8D8EC;
+      --btn-clear-bg:#2A1A1A;--btn-clear-text:#D07070;--btn-clear-border:rgba(176,80,80,.3);
+      --tap:#1A2538;--tap-plus:#1E2A3A;
+      --menu-bg:#1C2130;
+      --toggle-track:#3B6490;
+    }
+
+    body{font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg);min-height:100vh;transition:background .25s,color .25s}
+    .app{max-width:600px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+
+    /* ── HEADER ── */
+    .hdr{background:var(--navy);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;z-index:100}
+    .hdr-left{display:flex;align-items:center;gap:12px}
+    .hdr-logo{width:44px;height:44px;border-radius:9px;flex-shrink:0;object-fit:cover}
+    .hdr-r{font-family:'Montserrat',sans-serif;font-size:26px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1}
+    .hdr-c{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:5px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-top:2px}
+    .hdr-stripe{height:5px;background:linear-gradient(90deg,var(--navy2),var(--blue));flex-shrink:0}
+
+    /* ── HAMBURGER ── */
+    .hamburger{width:44px;height:44px;border-radius:10px;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0}
+    .hamburger span{display:block;width:20px;height:2px;background:#fff;border-radius:2px;transition:all .2s}
+    .hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+    .hamburger.open span:nth-child(2){opacity:0}
+    .hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+    /* ── DROPDOWN MENU ── */
+    .menu-overlay{position:fixed;inset:0;z-index:90;display:none}
+    .menu-overlay.open{display:block}
+    .dropdown{position:absolute;top:calc(100% + 5px);right:18px;background:var(--menu-bg);border:2px solid var(--border);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.18);overflow:hidden;z-index:200;min-width:200px;opacity:0;transform:translateY(-8px) scale(.97);transition:opacity .18s,transform .18s;pointer-events:none}
+    .dropdown.open{opacity:1;transform:translateY(0) scale(1);pointer-events:all}
+    .menu-item{padding:18px 22px;font-size:17px;font-weight:600;color:var(--text);cursor:pointer;border-bottom:1.5px solid var(--border);display:flex;align-items:center;gap:12px}
+    .menu-item:last-child{border-bottom:none}
+    .menu-item:active{background:var(--tap)}
+    .menu-icon{font-size:20px;width:26px;text-align:center}
+
+    /* ── MAIN CONTENT AREA ── */
+    .main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+
+    /* ── STEP PANELS ── */
+    .step{position:absolute;inset:0;padding:28px 22px;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;transform:translateX(40px)}
+    .step.active{opacity:1;pointer-events:all;transform:translateX(0);position:relative}
+    .step.exit-left{opacity:0;transform:translateX(-40px)}
+
+    /* ── BACK BUTTON ── */
+    .back-btn{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer;padding:8px 0;margin-bottom:18px;background:none;border:none;transition:color .15s}
+    .back-btn:active{color:var(--blue)}
+    .back-btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+
+    /* ── STEP LABEL ── */
+    .step-lbl{font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:16px}
+
+    /* ── SELECTION BUTTONS ── */
+    /* Each .sel-item is a full-width button row styled like a nav item */
+    .sel-list{display:flex;flex-direction:column;gap:10px}
+    .sel-item{
+      position:relative;overflow:hidden;
+      width:100%;padding:22px 20px;
+      border-radius:16px;border:2.5px solid var(--border);
+      background:var(--card);
+      cursor:pointer;text-align:left;
+      font-family:'DM Sans',sans-serif;
+      box-shadow:0 2px 8px rgba(0,0,0,.07);
+      transition:border-color .15s,background .15s,box-shadow .15s;
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    /* Background image layer — ready for future use */
+    .sel-item-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity .2s}
+    .sel-item-overlay{position:absolute;inset:0;background:var(--card);opacity:.88;transition:opacity .2s}
+    .sel-item-content{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;width:100%}
+    .sel-item:active,.sel-item.tapped{border-color:var(--blue);background:var(--blue-bg);box-shadow:0 0 0 4px rgba(59,100,144,.15)}
+    .sel-item-name{font-size:20px;font-weight:700;color:var(--text)}
+    .sel-item-sub{font-size:13px;color:var(--muted);margin-top:3px}
+    .sel-item-arrow{flex-shrink:0;margin-left:14px}
+    .sel-item-arrow svg{width:20px;height:20px;stroke:var(--muted);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .sel-item.custom-item{border-style:dashed}
+    .sel-item.custom-item .sel-item-name{opacity:.75}
+
+    /* ── CUSTOM TEXT INPUT ── */
+    .custom-input-wrap{margin-top:12px;display:none}
+    .custom-input-wrap.show{display:block}
+    .custom-input{width:100%;padding:18px 20px;font-family:'DM Sans',sans-serif;font-size:19px;font-weight:600;color:var(--text);border:2.5px solid var(--blue);border-radius:14px;background:var(--card);outline:none;margin-bottom:10px;transition:background .2s}
+    .custom-input::placeholder{color:var(--muted);font-weight:400}
+    .custom-confirm{width:100%;padding:18px;border-radius:14px;border:none;background:var(--btn-primary-bg);color:var(--btn-primary-text);font-family:'Montserrat',sans-serif;font-size:17px;font-weight:700;cursor:pointer;transition:opacity .15s}
+    .custom-confirm:active{opacity:.85}
+
+    /* ── COUNTER SCREEN ── */
+    #step-count{padding:0;justify-content:space-between}
+    .count-header{padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .count-context{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.3px}
+    .count-back{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;background:none;border:none;transition:color .15s}
+    .count-back:active{color:var(--blue)}
+    .count-back svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+
+    /* Big number */
+    .count-display{flex:1;display:flex;align-items:center;justify-content:center}
+    .count-num{font-family:'Montserrat',sans-serif;font-size:min(52vw,280px);font-weight:900;line-height:1;color:var(--text);user-select:none;transition:color .2s}
+
+    /* Tap zones */
+    .count-zones{display:grid;grid-template-columns:1fr 1fr;flex-shrink:0;height:min(38vw,200px);border-top:2.5px solid var(--border)}
+    .zone{display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:background .1s}
+    .zone svg{width:min(14vw,72px);height:min(14vw,72px);stroke-width:2.5;stroke-linecap:round;fill:none}
+    .zone.minus svg{stroke:var(--text)}
+    .zone.plus{border-left:2.5px solid var(--border)}
+    .zone.plus svg{stroke:var(--blue)}
+    .zone:active,.zone.tap{background:var(--tap)}
+    .zone.plus:active,.zone.plus.tap{background:var(--tap-plus)}
+
+    /* Save / Reset */
+    .count-actions{padding:14px 20px 24px;display:grid;grid-template-columns:1fr auto;gap:10px;flex-shrink:0}
+    .btn-save{padding:16px;border-radius:14px;border:none;background:var(--btn-primary-bg);color:var(--btn-primary-text);font-family:'Montserrat',sans-serif;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(59,100,144,.3);transition:opacity .15s}
+    .btn-save:active{opacity:.85}
+    .btn-reset{padding:16px 20px;border-radius:14px;border:2.5px solid var(--border);background:var(--card);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s}
+    .btn-reset:active{background:var(--tap);border-color:var(--blue)}
+
+    /* ── LOG VIEW ── */
+    .log-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .log-actions{display:flex;gap:8px}
+    .copy-btn,.clear-btn{padding:13px 18px;border-radius:12px;border:2.5px solid var(--border);background:var(--card);font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s}
+    .copy-btn:active{background:var(--tap)}
+    .clear-btn{color:var(--btn-clear-text);border-color:var(--btn-clear-border);background:var(--btn-clear-bg)}
+    .clear-btn:active{opacity:.85}
+    .toast{display:none;text-align:center;font-size:16px;color:var(--blue);padding:10px 0;font-weight:600}
+    .log-card{background:var(--card);border:2.5px solid var(--border);border-left:6px solid var(--blue);border-radius:14px;padding:16px 18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,.07);transition:background .2s}
+    .log-ministry{font-size:13px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+    .log-campus{font-size:17px;font-weight:700;color:var(--text)}
+    .log-svc{font-size:14px;color:var(--muted);margin-top:3px}
+    .log-detail{font-size:12px;color:var(--muted);margin-top:5px}
+    .log-num{font-family:'Montserrat',sans-serif;font-size:48px;font-weight:900;color:var(--text);flex-shrink:0;margin-left:14px}
+    .log-empty{text-align:center;padding:48px 22px;color:var(--muted);font-size:18px;line-height:1.6}
+
+    /* ── SETTINGS VIEW ── */
+    .set-card{background:var(--card);border:2.5px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 6px rgba(0,0,0,.07);transition:background .2s}
+    .set-row{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1.5px solid var(--border)}
+    .set-row:last-child{border-bottom:none}
+    .set-lbl{font-size:17px;font-weight:700;color:var(--text)}
+    .set-sub{font-size:13px;color:var(--muted);margin-top:3px}
+    .toggle{position:relative;width:58px;height:32px;flex-shrink:0}
+    .toggle input{opacity:0;width:0;height:0}
+    .toggle-track{position:absolute;inset:0;background:var(--toggle-track);border-radius:32px;cursor:pointer;transition:background .2s}
+    .toggle-track:before{content:'';position:absolute;width:24px;height:24px;left:4px;top:4px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+    input:checked + .toggle-track{background:var(--blue)}
+    input:checked + .toggle-track:before{transform:translateX(26px)}
+
+    /* ── FULL-SCREEN OVERLAYS (Log / Settings) ── */
+    .overlay-view{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s;max-width:600px;margin:0 auto}
+    .overlay-view.open{transform:translateX(0)}
+    .overlay-hdr{background:var(--navy);padding:14px 18px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+    .overlay-back{width:40px;height:40px;border-radius:9px;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .overlay-back svg{width:20px;height:20px;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .overlay-title{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:900;color:#fff;letter-spacing:-.5px}
+    .overlay-body{flex:1;overflow-y:auto;padding:24px 22px}
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <!--
+        LOGO: Replace PASTE_BASE64_HERE with your base64 string.
+        src="data:image/jpeg;base64,PASTE_BASE64_HERE"
+        Change image/jpeg to image/png if needed.
+      -->
+      <img class="hdr-logo" src="data:image/jpeg;base64,PASTE_BASE64_HERE" alt="Revolution Church Logo">
+      <div>
+        <div class="hdr-r">Revolution</div>
+        <div class="hdr-c">Church</div>
+      </div>
+    </div>
+    <div style="position:relative">
+      <button class="hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="dropdown" id="dropdown">
+        <div class="menu-item" id="openLog">
+          <span class="menu-icon">📋</span> Gathering Log
+        </div>
+        <div class="menu-item" id="openSettings">
+          <span class="menu-icon">⚙️</span> Settings
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hdr-stripe"></div>
+  <div class="menu-overlay" id="menuOverlay"></div>
+
+  <!-- MAIN FLOW -->
+  <div class="main" id="main">
+
+    <!-- STEP 1: MINISTRY -->
+    <div class="step active" id="step-ministry">
+      <div class="step-lbl">Select Ministry</div>
+      <div class="sel-list">
+        <button class="sel-item" data-ministry="revstudents">
+          <div class="sel-item-bg"></div><div class="sel-item-overlay"></div>
+          <div class="sel-item-content">
+            <div><div class="sel-item-name">Rev Students</div><div class="sel-item-sub">Both campuses &middot; Wednesday 6:30 PM</div></div>
+            <div class="sel-item-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </div>
+        </button>
+        <button class="sel-item" data-ministry="youngadults">
+          <div class="sel-item-bg"></div><div class="sel-item-overlay"></div>
+          <div class="sel-item-content">
+            <div><div class="sel-item-name">Young Adults</div><div class="sel-item-sub">Canton &middot; Monthly Tuesdays 6:30 PM</div></div>
+            <div class="sel-item-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </div>
+        </button>
+        <button class="sel-item" data-ministry="adults">
+          <div class="sel-item-bg"></div><div class="sel-item-overlay"></div>
+          <div class="sel-item-content">
+            <div><div class="sel-item-name">Adults</div><div class="sel-item-sub">Both campuses &middot; Multiple times</div></div>
+            <div class="sel-item-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </div>
+        </button>
+        <button class="sel-item custom-item" data-ministry="custom">
+          <div class="sel-item-bg"></div><div class="sel-item-overlay"></div>
+          <div class="sel-item-content">
+            <div><div class="sel-item-name">+ Custom</div><div class="sel-item-sub">Define your own event</div></div>
+            <div class="sel-item-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: CAMPUS -->
+    <div class="step" id="step-campus">
+      <button class="back-btn" id="back-campus">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Back
+      </button>
+      <div class="step-lbl" id="campus-lbl">Select Campus</div>
+      <div class="sel-list" id="campusList"></div>
+      <div class="custom-input-wrap" id="customLocationWrap">
+        <input class="custom-input" id="customLocationInput" type="text" placeholder="e.g. Downtown Event Center...">
+        <button class="custom-confirm" id="customLocationConfirm">Continue</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: GATHERING TIME (Adults only) -->
+    <div class="step" id="step-time">
+      <button class="back-btn" id="back-time">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Back
+      </button>
+      <div class="step-lbl">Select Gathering</div>
+      <div class="sel-list" id="timeList"></div>
+    </div>
+
+    <!-- STEP 4: COUNTER -->
+    <div class="step" id="step-count">
+      <div class="count-header">
+        <button class="count-back" id="back-count">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          <span id="count-context">Adults &middot; Canton &middot; 9:30 AM</span>
+        </button>
+      </div>
+      <div class="count-display">
+        <div class="count-num" id="countNum">0</div>
+      </div>
+      <div class="count-zones">
+        <div class="zone minus" id="zMinus">
+          <svg viewBox="0 0 128 128"><line x1="32" y1="64" x2="96" y2="64"/></svg>
+        </div>
+        <div class="zone plus" id="zPlus">
+          <svg viewBox="0 0 128 128"><line x1="64" y1="32" x2="64" y2="96"/><line x1="32" y1="64" x2="96" y2="64"/></svg>
+        </div>
+      </div>
+      <div class="count-actions">
+        <button class="btn-save" id="saveBtn">SAVE COUNT</button>
+        <button class="btn-reset" id="resetBtn">Reset</button>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- LOG OVERLAY -->
+  <div class="overlay-view" id="logOverlay">
+    <div class="overlay-hdr">
+      <button class="overlay-back" id="closeLog">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="overlay-title">Gathering Log</div>
+    </div>
+    <div class="overlay-body">
+      <div class="log-head">
+        <div></div>
+        <div class="log-actions">
+          <button class="copy-btn" id="copyBtn">Copy</button>
+          <button class="clear-btn" id="clearBtn">Clear</button>
+        </div>
+      </div>
+      <div class="toast" id="copyToast">Copied!</div>
+      <div id="logList"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS OVERLAY -->
+  <div class="overlay-view" id="settingsOverlay">
+    <div class="overlay-hdr">
+      <button class="overlay-back" id="closeSettings">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="overlay-title">Settings</div>
+    </div>
+    <div class="overlay-body">
+      <div class="step-lbl">Display</div>
+      <div class="set-card">
+        <div class="set-row">
+          <div>
+            <div class="set-lbl">Dark Mode</div>
+            <div class="set-sub">Easier on the eyes in low light</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="darkToggle">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ── DATA ──
+const MINISTRIES = {
+  revstudents: { label: 'Rev Students', needsCampus: true,  needsTime: false, campuses: ['canton','jasper'] },
+  youngadults: { label: 'Young Adults',  needsCampus: false, needsTime: false, campus: 'Canton' },
+  adults:      { label: 'Adults',        needsCampus: true,  needsTime: true,  campuses: ['canton','jasper'] },
+  custom:      { label: 'Custom',        needsCampus: true,  needsTime: false, campuses: ['canton','jasper','custom'] }
+};
+const TIMES = {
+  canton: ['Thu &middot; 7:00 PM','Sun &middot; 8:00 AM','Sun &middot; 9:30 AM','Sun &middot; 11:15 AM'],
+  jasper: ['Sun &middot; 9:30 AM','Sun &middot; 11:15 AM']
+};
+const CAMPUS_LABELS = { canton:'Canton', jasper:'Jasper' };
+
+// ── STATE ──
+let ministry=null, campusKey=null, campusLabel=null, timeLabel=null, customEventLabel=null, customLocationLabel=null, count=0, log=[];
+let stepHistory = ['ministry'];
+
+// ── STORAGE ──
+function loadAll(){
+  try{const s=localStorage.getItem('rc_state2');if(s){const st=JSON.parse(s);count=st.count||0;ministry=st.ministry||null;campusKey=st.campusKey||null;campusLabel=st.campusLabel||null;timeLabel=st.timeLabel||null;customEventLabel=st.customEventLabel||null;customLocationLabel=st.customLocationLabel||null;stepHistory=st.stepHistory||['ministry'];}}catch(e){}
+  try{const l=localStorage.getItem('rc_log');if(l)log=JSON.parse(l);}catch(e){log=[];}
+}
+function saveState(){try{localStorage.setItem('rc_state2',JSON.stringify({count,ministry,campusKey,campusLabel,timeLabel,customEventLabel,customLocationLabel,stepHistory}));}catch(e){}}
+function saveLog(){try{localStorage.setItem('rc_log',JSON.stringify(log));}catch(e){}}
+
+// ── DARK MODE ──
+const darkToggle = document.getElementById('darkToggle');
+function applyDark(on){document.body.classList.toggle('dark',on);darkToggle.checked=on;try{localStorage.setItem('rc_dark',on?'1':'0');}catch(e){}}
+darkToggle.addEventListener('change',()=>applyDark(darkToggle.checked));
+try{if(localStorage.getItem('rc_dark')==='1')applyDark(true);}catch(e){}
+
+// ── HAMBURGER ──
+const hamburger=document.getElementById('hamburger');
+const dropdown=document.getElementById('dropdown');
+const menuOverlay=document.getElementById('menuOverlay');
+function toggleMenu(on){hamburger.classList.toggle('open',on);dropdown.classList.toggle('open',on);menuOverlay.classList.toggle('open',on);}
+hamburger.addEventListener('click',()=>toggleMenu(!dropdown.classList.contains('open')));
+menuOverlay.addEventListener('click',()=>toggleMenu(false));
+document.getElementById('openLog').addEventListener('click',()=>{toggleMenu(false);openOverlay('logOverlay');renderLog();});
+document.getElementById('openSettings').addEventListener('click',()=>{toggleMenu(false);openOverlay('settingsOverlay');});
+document.getElementById('closeLog').addEventListener('click',()=>closeOverlay('logOverlay'));
+document.getElementById('closeSettings').addEventListener('click',()=>closeOverlay('settingsOverlay'));
+function openOverlay(id){document.getElementById(id).classList.add('open');}
+function closeOverlay(id){document.getElementById(id).classList.remove('open');}
+
+// ── STEP NAVIGATION ──
+function showStep(id, direction='forward'){
+  const all=document.querySelectorAll('.step');
+  all.forEach(s=>{
+    if(s.id===id){s.classList.remove('exit-left');s.style.transform=direction==='forward'?'translateX(40px)':'translateX(-40px)';s.classList.add('active');requestAnimationFrame(()=>{s.style.transform='';});}
+    else{s.classList.remove('active');}
+  });
+}
+
+function goBack(){
+  if(stepHistory.length<=1)return;
+  stepHistory.pop();
+  const prev=stepHistory[stepHistory.length-1];
+  showStep('step-'+prev,'back');
+  saveState();
+}
+
+// ── MINISTRY SELECTION ──
+document.querySelectorAll('.sel-item[data-ministry]').forEach(b=>b.addEventListener('click',()=>{
+  ministry=b.dataset.ministry;
+  const m=MINISTRIES[ministry];
+
+  if(ministry==='custom'){
+    // Custom event — need label first, then campus
+    const label = prompt('Enter a name for this event:');
+    if(!label||!label.trim())return;
+    customEventLabel=label.trim();
+    customLocationLabel=null;campusKey=null;campusLabel=null;timeLabel=null;
+    stepHistory=['ministry','campus'];
+    buildCampusStep();
+    showStep('step-campus');
+  } else if(!m.needsCampus){
+    // Young Adults — skip campus
+    campusKey=null;campusLabel=m.campus;customEventLabel=null;customLocationLabel=null;timeLabel=null;count=0;
+    stepHistory=['ministry','count'];
+    document.getElementById('countNum').textContent='0';
+    updateCountContext();
+    showStep('step-count');
+  } else {
+    customEventLabel=null;customLocationLabel=null;campusKey=null;campusLabel=null;timeLabel=null;
+    stepHistory=['ministry','campus'];
+    buildCampusStep();
+    showStep('step-campus');
+  }
+  saveState();
+}));
+
+// ── CAMPUS STEP ──
+function buildCampusStep(){
+  const m=MINISTRIES[ministry];
+  const lbl=document.getElementById('campus-lbl');
+  lbl.textContent='Select Campus';
+  const list=document.getElementById('campusList');
+  const customWrap=document.getElementById('customLocationWrap');
+  customWrap.classList.remove('show');
+  list.innerHTML='';
+
+  const campuses=m.campuses||['canton','jasper'];
+  campuses.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='sel-item'+(c==='custom'?' custom-item':'');
+    if(c==='custom'){
+      btn.innerHTML=`<div class="sel-item-bg"></div><div class="sel-item-overlay"></div><div class="sel-item-content"><div><div class="sel-item-name">+ Custom Location</div><div class="sel-item-sub">Enter a different venue</div></div><div class="sel-item-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>`;
+      btn.addEventListener('click',()=>{
+        list.querySelectorAll('.sel-item').forEach(x=>x.classList.remove('tapped'));
+        btn.classList.add('tapped');
+        customWrap.classList.add('show');
+        document.getElementById('customLocationInput').focus();
+      });
+    } else {
+      const label=CAMPUS_LABELS[c];
+      btn.innerHTML=`<div class="sel-item-bg"></div><div class="sel-item-overlay"></div><div class="sel-item-content"><div><div class="sel-item-name">${label}</div></div><div class="sel-item-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>`;
+      btn.addEventListener('click',()=>{
+        campusKey=c;campusLabel=label;customLocationLabel=null;
+        customWrap.classList.remove('show');
+        afterCampus();
+      });
+    }
+    list.appendChild(btn);
+  });
+}
+
+document.getElementById('customLocationConfirm').addEventListener('click',()=>{
+  const val=document.getElementById('customLocationInput').value.trim();
+  if(!val){document.getElementById('customLocationInput').focus();return;}
+  customLocationLabel=val;campusKey='custom';campusLabel=val;
+  document.getElementById('customLocationWrap').classList.remove('show');
+  afterCampus();
+});
+document.getElementById('customLocationInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('customLocationConfirm').click();});
+
+function afterCampus(){
+  const m=MINISTRIES[ministry];
+  if(m.needsTime){
+    stepHistory.push('time');
+    buildTimeStep();
+    showStep('step-time');
+  } else {
+    count=0;timeLabel=null;
+    stepHistory.push('count');
+    document.getElementById('countNum').textContent='0';
+    updateCountContext();
+    showStep('step-count');
+  }
+  saveState();
+}
+
+// ── TIME STEP ──
+function buildTimeStep(){
+  const list=document.getElementById('timeList');
+  list.innerHTML='';
+  const times=TIMES[campusKey]||[];
+  times.forEach(t=>{
+    const btn=document.createElement('button');
+    btn.className='sel-item';
+    btn.innerHTML=`<div class="sel-item-bg"></div><div class="sel-item-overlay"></div><div class="sel-item-content"><div><div class="sel-item-name">${t}</div></div><div class="sel-item-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>`;
+    btn.addEventListener('click',()=>{
+      timeLabel=t.replace('&middot;','·');
+      count=0;
+      stepHistory.push('count');
+      document.getElementById('countNum').textContent='0';
+      updateCountContext();
+      showStep('step-count');
+      saveState();
+    });
+    list.appendChild(btn);
+  });
+}
+
+// ── COUNT CONTEXT LABEL ──
+function updateCountContext(){
+  const m=MINISTRIES[ministry];
+  const parts=[];
+  parts.push(ministry==='custom'?(customEventLabel||'Custom'):m.label);
+  if(campusLabel)parts.push(campusLabel);
+  if(timeLabel)parts.push(timeLabel);
+  document.getElementById('count-context').innerHTML=parts.join(' &middot; ');
+}
+
+// ── BACK BUTTONS ──
+document.getElementById('back-campus').addEventListener('click',()=>{stepHistory.pop();showStep('step-ministry','back');saveState();});
+document.getElementById('back-time').addEventListener('click',()=>{stepHistory.pop();showStep('step-campus','back');saveState();});
+document.getElementById('back-count').addEventListener('click',()=>{
+  stepHistory.pop();
+  const prev=stepHistory[stepHistory.length-1];
+  showStep('step-'+prev,'back');
+  saveState();
+});
+
+// ── COUNTER ──
+function adjust(d){count=Math.max(0,count+d);document.getElementById('countNum').textContent=count;saveState();}
+function addTap(el,fn){
+  function tap(e){e.preventDefault();el.classList.add('tap');setTimeout(()=>el.classList.remove('tap'),120);fn();}
+  el.addEventListener('touchstart',tap,{passive:false});
+  el.addEventListener('click',()=>{if(!('ontouchstart' in window))fn();});
+}
+addTap(document.getElementById('zMinus'),()=>adjust(-1));
+addTap(document.getElementById('zPlus'),()=>adjust(1));
+
+document.getElementById('saveBtn').addEventListener('click',()=>{
+  if(!ministry)return;
+  const m=MINISTRIES[ministry];
+  const ministryLabel=ministry==='custom'?(customEventLabel||'Custom'):m.label;
+  log.unshift({
+    ministry:ministryLabel,
+    campus:campusLabel||'',
+    time:timeLabel||'',
+    count,
+    saved:new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}),
+    date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+  });
+  saveLog();
+  count=0;document.getElementById('countNum').textContent='0';saveState();
+});
+
+document.getElementById('resetBtn').addEventListener('click',()=>{count=0;document.getElementById('countNum').textContent='0';saveState();});
+
+// ── LOG ──
+function renderLog(){
+  const c=document.getElementById('logList');
+  if(!log.length){c.innerHTML='<div class="log-empty">No entries yet.<br>Complete a count and tap Save Count.</div>';return;}
+  c.innerHTML=log.map(e=>`
+    <div class="log-card">
+      <div>
+        <div class="log-ministry">${e.ministry}</div>
+        <div class="log-campus">${e.campus}</div>
+        <div class="log-svc">${e.time?e.time+' &middot; ':''} ${e.date}</div>
+        <div class="log-detail">Saved at ${e.saved}</div>
+      </div>
+      <div class="log-num">${e.count}</div>
+    </div>`).join('');
+}
+
+document.getElementById('copyBtn').addEventListener('click',()=>{
+  if(!log.length)return;
+  const lines=['REVOLUTION CHURCH \u2014 GATHERING LOG','Exported: '+new Date().toLocaleString(),''];
+  log.forEach(e=>{
+    lines.push(`${e.ministry} \u00b7 ${e.campus}${e.time?' \u00b7 '+e.time:''} (${e.date})`);
+    lines.push(`Attendance: ${e.count} | Saved at ${e.saved}`);
+    lines.push('');
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+    const t=document.getElementById('copyToast');t.style.display='block';setTimeout(()=>t.style.display='none',2000);
+  });
+});
+
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  if(!confirm('Clear all saved gathering entries?'))return;
+  log=[];saveLog();renderLog();
+});
+
+// ── RESTORE STATE ON LOAD ──
+function restoreState(){
+  loadAll();
+  if(!ministry){showStep('step-ministry');return;}
+  const currentStep=stepHistory[stepHistory.length-1];
+  if(currentStep==='campus'){buildCampusStep();}
+  else if(currentStep==='time'){buildCampusStep();buildTimeStep();}
+  else if(currentStep==='count'){
+    if(stepHistory.includes('time'))buildTimeStep();
+    buildCampusStep();
+    document.getElementById('countNum').textContent=count;
+    updateCountContext();
+  }
+  showStep('step-'+currentStep);
+}
+
+restoreState();
+</script>
+</body>
+</html>
